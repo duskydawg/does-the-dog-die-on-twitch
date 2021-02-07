@@ -64,3 +64,18 @@ chrome.tabs.query({active: true, currentWindow: true}, function(result) {
         }
     });
 });
+
+chrome.storage.sync.get('theme', function(items) {
+    let theme;
+
+    if (items['theme'] !== undefined) {
+        theme = items['theme'];
+    } else {
+        chrome.storage.sync.set({theme: "light"}, function() {});
+        theme = "light";
+    }
+
+    if (theme === "dark") {
+        document.body.classList.add("dark-theme");
+    }
+});

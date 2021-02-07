@@ -19,6 +19,10 @@
             "128": "images/ddd-128.png"
         }
     },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": false
+    },
     "icons": {
         "128": "images/ddd-128.png"
     },
