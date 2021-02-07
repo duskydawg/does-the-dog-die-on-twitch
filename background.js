@@ -107,7 +107,7 @@ function checkCacheDiff(tabId, gameName) {
 chrome.runtime.onMessage.addListener(function(request, sender, _sendResponse) {
     switch (request['event']) {
         case "check-game":
-            if (RegExp('https://(?:www\.)?twitch.tv/(([a-zA-Z0-9_]+)|(videos/[0-9]+))$').test(sender.tab.url)) {
+            if (/https:\/\/(?:www\.)?twitch.tv\/(([a-zA-Z0-9_]+)|(videos\/[0-9]+))(\?.+)?$/.test(sender.tab.url)) {
                 if (request['game'] != null) {
                     checkCacheDiff(sender.tab.id, request['game']);
                 } else {
