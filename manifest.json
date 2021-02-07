@@ -1,0 +1,26 @@
+{
+    "name": "Does the Dog Die on Twitch?",
+    "version": "1.0",
+    "description": "Display content warnings from Does the Dog Die on Twitch pages",
+    "permissions": ["tabs", "storage", "https://www.doesthedogdie.com/"],
+    "background": {
+        "scripts": ["background.js"],
+        "persistent": false
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://www.twitch.tv/*"],
+            "js": ["content.js"]
+        }
+    ],
+    "browser_action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "128": "images/ddd-128.png"
+        }
+    },
+    "icons": {
+        "128": "images/ddd-128.png"
+    },
+    "manifest_version": 2
+}
