@@ -1,11 +1,28 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <link rel="stylesheet" href="options.css">
+    </head>
     <body>
         <label for="select-theme">Theme:</label>
         <select name="theme" id="select-theme">
             <option value="light">Light</option>
             <option value="dark">Dark</option>
         </select>
+        <div class="lists">
+            <div class="list-box">
+                <label for="include-list">Include</label>
+                <select name="include" id="include-list" multiple></select>
+            </div>
+            <div class="swap">
+                <button id="add-exclude">>></button>
+                <button id="remove-exclude"><<</button>
+            </div>
+            <div class="list-box">
+                <label for="exclude-list">Exclude</label>
+                <select name="exclude" id="exclude-list" multiple></select>
+            </div>
+        </div>
         <script src="options.js"></script>
     </body>
 </html>

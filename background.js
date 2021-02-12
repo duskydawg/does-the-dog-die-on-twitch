@@ -1,5 +1,6 @@
 const TAB_UPDATE_WAIT_MS = 2000;
 const MAX_STRING_DIFF = 3;
+const FIRST_RUN_MEDIA_ID = 10752;
 var D3_API_KEY;
 
 function stringDiff(firstStr, secondStr) {
@@ -36,14 +37,80 @@ function toTitleCase(txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1);
 }
 
+function updateTopics({topics, topicDetails}) {
+    chrome.storage.sync.get("topics", function(items) {
+        for (const topic of topics) {
+            if (items['topics'] !== undefined) {
+                for (const savedTopic of items['topics']) {
+                    if (topic['id'] == savedTopic['id']) {
+                        topic['include'] = savedTopic['include'];
+                        break;
+                    }
+                }
+            }
+
+            if (topic['include'] === undefined) {
+                topic['include'] = 1;
+            }
+        }
+
+        chrome.storage.sync.set({topics: topics}, function() {});
+        chrome.storage.local.set({topicDetails: topicDetails});
+    });
+}
+
+function formatTopics(responseText) {
+    let topics = [];
+    let topicDetails = [];
+
+    for (const topic of JSON.parse(responseText)['topicItemStats']) {
+        topics.push({
+            id: topic['topic']['id']
+        });
+
+        topicDetails.push({
+            id: topic['topic']['id'],
+            name: topic['topic']['smmwDescription'],
+            description: topic['topic']['doesName'],
+            categoryId: topic['topic']['TopicCategory']['id'],
+            categoryName: topic['topic']['TopicCategory']['name']
+        })
+    }
+
+    return {topics: topics, topicDetails: topicDetails};
+}
+
 function saveToCache(tabId, gameName, twitchGameName, warnings) {
     let cache = {};
     cache[tabId.toString()] = {gameName: gameName, twitchGameName: twitchGameName, warnings: warnings};
+
     chrome.storage.local.set(cache, function() {
         chrome.runtime.sendMessage({event: "cache-updated", tabId: tabId, gameName: gameName, warnings: warnings});
     });
 
     if (warnings != null) {
+        chrome.storage.sync.get("topics", function(items) {
+            if (items['topics'] !== undefined) {
+                // FIXME: Badge number not showing on refresh
+                let nWarnings = 0;
+
+                for (const warning of warnings) {
+                    for (const topic of items['topics']) {
+                        if (warning['warningId'] == topic['id']) {
+                            if (topic['include'] != 0) {
+                                nWarnings++;
+                            }
+
+                            break;
+                        }
+                    }
+                }
+
+                chrome.browserAction.setBadgeText({tabId: tabId, text: nWarnings.toString()});
+            } else {
+                chrome.browserAction.setBadgeText({tabId: tabId, text: ''});
+            }
+        });
         chrome.browserAction.setBadgeText({tabId: tabId, text: warnings.length.toString()});
     } else {
         chrome.browserAction.setBadgeText({tabId: tabId, text: ''});
@@ -56,11 +123,14 @@ function handleD3Details(tabId, twitchGameName) {
 
     for (const item of JSON.parse(this.responseText)['topicItemStats']) {
         if (item['isYes'] == 1) {
-            warnings.push(item['topic']['smmwDescription']);
+            warnings.push({warningId: item['topic']['id'], warningName: item['topic']['smmwDescription']});
         }
     }
 
     saveToCache(tabId, gameName, twitchGameName, warnings);
+
+    let topics = formatTopics(this.responseText);
+    updateTopics(topics);
 }
 
 function handleD3(tabId, twitchGameName) {
@@ -107,7 +177,7 @@ function checkCacheDiff(tabId, gameName) {
 chrome.runtime.onMessage.addListener(function(request, sender, _sendResponse) {
     switch (request['event']) {
         case "check-game":
-            if (/https:\/\/(?:www\.)?twitch.tv\/(([a-zA-Z0-9_]+)|(videos\/[0-9]+))(\?.+)?$/.test(sender.tab.url)) {
+            if (/^https:\/\/(?:www\.)?twitch.tv\/(([a-zA-Z0-9_]+)|(videos\/[0-9]+))(\?.+)?$/.test(sender.tab.url)) {
                 if (request['game'] != null) {
                     checkCacheDiff(sender.tab.id, request['game']);
                 } else {
@@ -124,7 +194,7 @@ chrome.tabs.onCreated.addListener((tab) => {
     chrome.browserAction.disable(tab.id, function() {});
 })
 
-chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo['status'] == "complete" && RegExp("^https://(?:www\.)?twitch.tv/.+").test(tab['url'])) {
         chrome.browserAction.enable(tabId, function() {});
         setTimeout(function() {
@@ -139,7 +209,27 @@ chrome.tabs.onRemoved.addListener(function(tabId, _removeInfo) {
     chrome.storage.local.remove(tabId.toString(), function() {});
 });
 
-chrome.storage.local.clear(function() {});
+chrome.runtime.onInstalled.addListener(function(_id, _previousVersion, reason) {
+    if (reason === "install") {
+        let req = new XMLHttpRequest();
+        req.addEventListener("load", function() {
+            let topics = formatTopics(this.responseText);
+            updateTopics(topics);
+        });
+        req.open("GET", `https://www.doesthedogdie.com/media/${FIRST_RUN_MEDIA_ID}`);
+        req.setRequestHeader("Accept", "application/json");
+        req.setRequestHeader("X-API-KEY", D3_API_KEY);
+        req.send();
+    }
+});
+
+chrome.storage.local.get(null, function(items) {
+    for (const key of Object.keys(items)) {
+        if (/^\d+$/.test(key)) {
+            chrome.storage.local.remove(key, function() {});
+        }
+    }
+});
 
 var keyReq = new XMLHttpRequest();
 keyReq.addEventListener("load", function() {

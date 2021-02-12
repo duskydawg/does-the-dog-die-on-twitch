@@ -7,35 +7,51 @@ function updateTitle(title) {
 }
 
 function updateWarnings(warnings) {
-    let warningsList = document.getElementById("warnings");
-    let warningMsg = document.getElementById("warn-msg");
+    chrome.storage.sync.get("topics", function(items) {
+        let warningPrefs;
 
-    if (warningMsg != null) {
-        warningMsg.remove();
-    }
-
-    while (warningsList.hasChildNodes()) {
-        warningsList.removeChild(warningsList.firstChild);
-    }    
-
-    if (warnings != null && warnings.length > 0) {
-        for (const warning of warnings) {
-            let elem = document.createElement('li');
-            elem.innerText = toTitleCase(warning);
-            warningsList.appendChild(elem);
-        }
-    } else {
-        let msg = document.createElement('p');
-        msg.id = "warn-msg";
-
-        if (warnings != null) {
-            msg.innerText = "No warnings for game, enjoy :)";
+        if (items['topics'] !== undefined) {
+            warningPrefs = items['topics'];
         } else {
-            msg.innerText = "Game not found on 'Does the Dog Die?'";
+            console.warning("No warning preferences found, including all warnings");
+            warningPrefs = [];
+        }
+        console.debug(warningPrefs);
+
+        let warningsList = document.getElementById("warnings");
+        let warningMsg = document.getElementById("warn-msg");
+
+        if (warningMsg != null) {
+            warningMsg.remove();
         }
 
-        document.body.insertBefore(msg, warningsList);
-    }
+        while (warningsList.hasChildNodes()) {
+            warningsList.removeChild(warningsList.firstChild);
+        }    
+
+        if (warnings != null && warnings.length > 0) {
+            for (const warning of warnings) {
+                let pref = warningPrefs.find(element => element['id'] == warning['warningId']);
+
+                if (pref === undefined || pref['include'] > 0) {
+                    let elem = document.createElement('li');
+                    elem.innerText = toTitleCase(warning['warningName']);
+                    warningsList.appendChild(elem);
+                }
+            }
+        } else {
+            let msg = document.createElement('p');
+            msg.id = "warn-msg";
+
+            if (warnings != null) {
+                msg.innerText = "No warnings for game, enjoy :)";
+            } else {
+                msg.innerText = "Game not found on 'Does the Dog Die?'";
+            }
+
+            document.body.insertBefore(msg, warningsList);
+        }
+    });
 }
 
 chrome.runtime.onMessage.addListener(function(request, _sender, _sendResponse) {
@@ -79,3 +95,4 @@ chrome.storage.sync.get('theme', function(items) {
         document.body.classList.add("dark-theme");
     }
 });
+// TODO: Fix game heading in place
