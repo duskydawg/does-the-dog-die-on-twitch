@@ -3,15 +3,29 @@
         <meta charset="utf-8">
         <style>
             body {
+                margin: 0px 8px;
+                background-color: white;
                 text-align: center;
                 width: 20em;
             }
 
+            header {
+                position: sticky;
+                top: 0px;
+                background-color: inherit;
+            }
+
+            header > * {
+                margin: 0px;
+            }
+
             h1 {
                 font-size: medium;
+                padding: 8px 0px;
             }
 
             ul {
+                margin: 8px 0px;
                 padding: 0px;
                 list-style-position: inside;
             }
@@ -27,8 +41,10 @@
         </style>
     </head>
     <body>
-        <h1 id="game-name">Getting game...</h1>
-        <hr>
+        <header>
+            <h1 id="game-name">Getting game...</h1>
+            <hr>
+        </header>
         <ul id="warnings"></ul>
         <script src="popup.js"></script>
     </body>

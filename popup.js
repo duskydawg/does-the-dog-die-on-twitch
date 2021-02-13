@@ -95,4 +95,3 @@ chrome.storage.sync.get('theme', function(items) {
         document.body.classList.add("dark-theme");
     }
 });
-// TODO: Fix game heading in place
