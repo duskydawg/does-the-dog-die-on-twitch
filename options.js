@@ -103,7 +103,7 @@ document.getElementById("select-theme").addEventListener("input", function(event
 document.getElementById("add-exclude").addEventListener("click", shiftTopic);
 document.getElementById("remove-exclude").addEventListener("click", shiftTopic);
 
-chrome.storage.sync.get("topics", function(syncItems) {
+chrome.storage.sync.get(null, function(syncItems) {
     chrome.storage.local.get("topicDetails", function(localItems) {
         if (syncItems['topics'] !== undefined && localItems['topicDetails'] !== undefined) {
             let includeList = document.getElementById("include-list");
@@ -181,4 +181,10 @@ chrome.storage.sync.get("topics", function(syncItems) {
             console.warning("Topic data missing");
         }
     });
+
+    if (syncItems['theme'] !== undefined && syncItems['theme'] !== "light") {
+        document.querySelector(`#select-theme > option[value='${syncItems['theme']}']`).selected = true;
+    } else {
+        document.querySelector(`#select-theme > option[value='light']`).selected = true;
+    }
 });
