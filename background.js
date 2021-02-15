@@ -80,6 +80,36 @@ function formatTopics(responseText) {
     return {topics: topics, topicDetails: topicDetails};
 }
 
+function updateBadgeText(tabId, warnings) {
+    chrome.storage.sync.get("topics", function(items) {
+        if (items['topics'] !== undefined) {
+            let nWarnings = 0;
+
+            for (const warning of warnings) {
+                for (const topic of items['topics']) {
+                    if (warning['warningId'] == topic['id']) {
+                        if (topic['include'] != 0) {
+                            nWarnings++;
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            chrome.browserAction.setBadgeText({tabId: tabId, text: nWarnings.toString()});
+        } else {
+            chrome.browserAction.setBadgeText({tabId: tabId, text: ''});
+        }
+    });
+}
+
+function sendUpdateMsg(tabId, eventType) {
+    setTimeout(function() {
+        chrome.tabs.sendMessage(tabId, {event: eventType});
+    }, TAB_UPDATE_WAIT_MS);
+}
+
 function saveToCache(tabId, gameName, twitchGameName, warnings) {
     let cache = {};
     cache[tabId.toString()] = {gameName: gameName, twitchGameName: twitchGameName, warnings: warnings};
@@ -89,29 +119,7 @@ function saveToCache(tabId, gameName, twitchGameName, warnings) {
     });
 
     if (warnings != null) {
-        chrome.storage.sync.get("topics", function(items) {
-            if (items['topics'] !== undefined) {
-                // FIXME: Badge number not showing on refresh
-                let nWarnings = 0;
-
-                for (const warning of warnings) {
-                    for (const topic of items['topics']) {
-                        if (warning['warningId'] == topic['id']) {
-                            if (topic['include'] != 0) {
-                                nWarnings++;
-                            }
-
-                            break;
-                        }
-                    }
-                }
-
-                chrome.browserAction.setBadgeText({tabId: tabId, text: nWarnings.toString()});
-            } else {
-                chrome.browserAction.setBadgeText({tabId: tabId, text: ''});
-            }
-        });
-        chrome.browserAction.setBadgeText({tabId: tabId, text: warnings.length.toString()});
+        updateBadgeText(tabId, warnings);
     } else {
         chrome.browserAction.setBadgeText({tabId: tabId, text: ''});
     }
@@ -170,6 +178,8 @@ function checkCacheDiff(tabId, gameName) {
                 req.setRequestHeader("X-API-KEY", D3_API_KEY);
                 req.send();
             });
+        } else {
+            updateBadgeText(tabId, items[tabIdStr]['warnings']);
         }
     });
 }
@@ -197,9 +207,7 @@ chrome.tabs.onCreated.addListener((tab) => {
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo['status'] == "complete" && RegExp("^https://(?:www\.)?twitch.tv/.+").test(tab['url'])) {
         chrome.browserAction.enable(tabId, function() {});
-        setTimeout(function() {
-            chrome.tabs.sendMessage(tabId, {event: "url-updated"});
-        }, TAB_UPDATE_WAIT_MS);
+        sendUpdateMsg(tabId, "url-updated");
     } else if (!RegExp("^https://(?:www\.)?twitch.tv/.+").test(tab['url'])) {
         chrome.browserAction.disable(tabId, function() {});
     }
@@ -228,6 +236,12 @@ chrome.storage.local.get(null, function(items) {
         if (/^\d+$/.test(key)) {
             chrome.storage.local.remove(key, function() {});
         }
+    }
+});
+
+chrome.webNavigation.onCommitted.addListener(function(details) {
+    if (details['transitionType'] === "reload") {
+        sendUpdateMsg(details['tabId'], "tab-reloaded");
     }
 });
 

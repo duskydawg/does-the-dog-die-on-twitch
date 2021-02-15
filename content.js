@@ -26,6 +26,7 @@ function resetTimer() {
 chrome.runtime.onMessage.addListener(function(request, _sender, _sendResponse) {
     switch (request['event']) {
         case "url-updated":
+        case "tab-reloaded":
             resetTimer();
             let testElemList = document.getElementsByClassName("video-player");
 

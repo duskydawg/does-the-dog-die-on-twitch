@@ -2,7 +2,7 @@
     "name": "Does the Dog Die on Twitch?",
     "version": "1.0",
     "description": "Display content warnings from Does the Dog Die on Twitch pages",
-    "permissions": ["tabs", "storage", "https://www.doesthedogdie.com/"],
+    "permissions": ["webNavigation", "tabs", "storage", "https://www.doesthedogdie.com/"],
     "background": {
         "scripts": ["background.js"],
         "persistent": false
